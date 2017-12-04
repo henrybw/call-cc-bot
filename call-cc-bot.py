@@ -55,12 +55,18 @@ async def on_message(msg):
         if len(args) == 2:
             try:
                 context = int(args[1])
+                if context < 0:
+                    await client.send_message(msg.channel,
+                                              ("cannot capture messages from the future: "
+                                               "time manipulation not yet supported"))
+                    return
+
                 async for message in client.logs_from(msg.channel,
-                                                    limit=min(context + 1, maxsize),
-                                                    reverse=True):
+                                                      limit=min(context + 1, maxsize),
+                                                      reverse=True):
                     scrollback.append("%s <%s>\t%s" % (message.timestamp.ctime(),
-                                                    handle(message.author),
-                                                    message.content))
+                                                       handle(message.author),
+                                                       message.content))
                 # the first message is the command that invoked us, so skip it
                 scrollback.popleft()
             except ValueError:
