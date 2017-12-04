@@ -11,7 +11,7 @@ USAGE_TEXT = ("usage: `~(call/cc #channel [context])`\n\n"
               "messages to repost (0, by default).")
 
 def handle(author):
-    return author.nick if author.nick else author.name
+    return "<@%s>" % author.id
 
 @client.event
 async def on_ready():
