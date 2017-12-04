@@ -3,7 +3,11 @@ Discord bot that passes continuations to requested channels.
 
 # Usage
 
-    ~(call/cc #channel [optional message...])
+    ~(call/cc #channel [context])
+
+~call~ continue the current ~continuation~ conversation in another channel on
+this server, where `context` is the number of previous messages to repost
+(0, by default).
 
 The bot expects `#channel` to be a channel reference (i.e. appearing as a
 clickable link). Discord should automatically convert this for you.
@@ -22,6 +26,10 @@ Libraries:
 Installation:
 
     python3 -m pip install -U discord.py
+
+Operation:
+
+    python3 call-cc-bot.py
 
 ## Secrets
 
