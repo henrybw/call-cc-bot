@@ -93,8 +93,15 @@ async def on_message(msg):
         response = "invoked by %s from %s" % (id_from_user(msg.author), id_from_channel(msg.channel))
         if len(scrollback):
             response += '\n\n' + '\n'.join(scrollback)
-        await client.send_message(next_chan, response)
 
+        try:
+            await client.send_message(next_chan, response)
+        except discord.errors.HTTPException:
+            await client.send_message(msg.channel,
+                                      ("discord got mad at me. it's probably not your fault, "
+                                       "but here's the usage documentation anyway (y'know, in "
+                                       "case it *is* actually your fault...):\n\n%s" % (USAGE_TEXT,)))
+            raise
 
     if cmd[0].lower() == "call/cc":
         await call_cc(msg, cmd[1:])
