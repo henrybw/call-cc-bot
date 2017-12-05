@@ -32,14 +32,13 @@ async def on_message(msg):
         return
     if not msg.content.startswith("~("):
         return
-
-    cmd = msg.content.split(' ')
-
     # this bot is uselessly pedantic about being fed s-expressions *only*.
-    if not cmd[-1].endswith(")"):
+    if not msg.content.endswith(")"):
         await client.send_message(msg.channel,
                                   "expected a `)` to close `(`\n\n%s" % (USAGE_TEXT,))
         return
+
+    cmd = msg.content.split(' ')
 
     def strip_sexps(cmd):
         cmd[0] = cmd[0][2:]
