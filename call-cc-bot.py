@@ -10,8 +10,16 @@ USAGE_TEXT = ("usage: `~(call/cc #channel [context])`\n\n"
               "channel on this server, where `context` is the number of previous "
               "messages to repost (0, by default).")
 
-def handle(author):
+def id_from_user(author):
     return "<@%s>" % author.id
+
+def id_from_channel(chan):
+    return "<#%s>" % chan.id
+
+# discord ids are surrounded with '<X' and '>' markers (X is, e.g., '#' for
+# channels and '@' for users) to denote that they are ids of some sort.
+def deformat_id(fmt_id):
+    return fmt_id[2:-1]
 
 @client.event
 async def on_ready():
@@ -32,11 +40,19 @@ async def on_message(msg):
         await client.send_message(msg.channel,
                                   "expected a `)` to close `(`\n\n%s" % (USAGE_TEXT,))
         return
-    cmd[0] = cmd[0][2:]
-    cmd[-1] = cmd[-1][:-1:1]
+
+    def strip_sexps(cmd):
+        cmd[0] = cmd[0][2:]
+        cmd[-1] = cmd[-1][:-1:1]
+    strip_sexps(cmd)
+
+    def compress_spaces(cmd):
+        return ' '.join(cmd).split()
+    cmd = compress_spaces(cmd)
 
     async def call_cc(msg, args):
         if len(args) < 1 or len(args) > 2 or args[0].lower() == 'help':
+            print(args)
             await client.send_message(msg.channel, USAGE_TEXT)
             return
 
@@ -45,10 +61,10 @@ async def on_message(msg):
             await client.send_message(msg.channel,
                                       "%s: undefined channel\n\n%s" % (next_chan_id, USAGE_TEXT))
             return
-        next_chan = client.get_channel(next_chan_id[2:-1])
+        next_chan = client.get_channel(deformat_id(next_chan_id))
         if not next_chan:
             await client.send_message(msg.channel,
-                                      "%s: undefined channel\n\n%s" % (args[0], USAGE_TEXT))
+                                      "%s: undefined channel\n\n%s" % (next_chan_id, USAGE_TEXT))
             return
 
         scrollback = deque([])
@@ -58,23 +74,23 @@ async def on_message(msg):
                 if context < 0:
                     await client.send_message(msg.channel,
                                               ("cannot capture messages from the future: "
-                                               "time manipulation not yet supported"))
+                                               "time manipulation not yet supported\n\n%s" % (USAGE_TEXT,)))
                     return
 
                 async for message in client.logs_from(msg.channel,
                                                       limit=min(context + 1, maxsize),
                                                       reverse=True):
                     scrollback.append("%s <%s>\t%s" % (message.timestamp.ctime(),
-                                                       handle(message.author),
+                                                       id_from_user(message.author),
                                                        message.content))
                 # the first message is the command that invoked us, so skip it
                 scrollback.popleft()
             except ValueError:
                 await client.send_message(msg.channel,
-                                          "%s: cannot capture this many messages%\n\n" % (args[1], USAGE_TEXT))
+                                          "%s: cannot capture this many messages\n\n%s" % (args[1], USAGE_TEXT))
+                raise
 
-        user = handle(msg.author)
-        response = "invoked by %s from <#%s>" % (user, msg.channel.id)
+        response = "invoked by %s from %s" % (id_from_user(msg.author), id_from_channel(msg.channel))
         if len(scrollback):
             response += '\n\n' + '\n'.join(scrollback)
         await client.send_message(next_chan, response)
